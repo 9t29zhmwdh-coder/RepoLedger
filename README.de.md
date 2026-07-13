@@ -4,7 +4,7 @@
   <h1>RepoLedger</h1>
 </div>
 
-[![Pages](https://img.shields.io/badge/Live-RepoLedger-a5762e)](https://9t29zhmwdh-coder.github.io/RepoLedger/) ![No backend](https://img.shields.io/badge/Backend-none-2f7d5c) ![AI | Claude Code](https://img.shields.io/badge/AI-Claude_Code-black?logo=anthropic&logoColor=white)
+[![Pages](https://img.shields.io/badge/Live-RepoLedger-a5762e)](https://raystudio.ch/RepoLedger/) ![No backend](https://img.shields.io/badge/Backend-none-2f7d5c) ![AI | Claude Code](https://img.shields.io/badge/AI-Claude_Code-black?logo=anthropic&logoColor=white)
 
 🇬🇧 [English Version](README.md)
 
@@ -14,7 +14,7 @@ Ein kostenloses, rein clientseitiges GitHub-Portfolio-Dashboard. Gib einen belie
 
 ## Ausprobieren
 
-**[9t29zhmwdh-coder.github.io/RepoLedger](https://9t29zhmwdh-coder.github.io/RepoLedger/)**
+**[raystudio.ch/RepoLedger](https://raystudio.ch/RepoLedger/)**
 
 Einfach einen GitHub-Benutzernamen eingeben und "Load dashboard" klicken. Keine Anmeldung, keine Installation.
 
