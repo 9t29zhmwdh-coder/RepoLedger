@@ -1,0 +1,24 @@
+<div align="center">
+  <img src="RayStudio.png" alt="RayStudio Logo" width="120"/>
+
+  <h1>Changelog</h1>
+</div>
+
+> 🇬🇧 [English Version](CHANGELOG.md)
+
+Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
+Format nach [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+## [1.0.0] - 2026-07-13
+
+### Added
+
+- Erstes Release: rein clientseitiges GitHub-Portfolio-Dashboard, eine einzige Datei.
+- CI-Status, offene PRs und Dependabot-/Code-Scanning-Meldungen pro Repo.
+- Aktivitäts-Ansicht: letzter Push, Hauptsprache, Star-Anzahl.
+- Lizenzierungs-Ansicht: erkennt pro Repo eine MIT + `LICENSE.COMMERCIAL`-Dual-Licensing-Struktur.
+- Optionales Personal-Access-Token-Feld, hebt das unauthentifizierte Limit von 60 auf 5'000 Aufrufe/Stunde an.
+- Englische, deutsche und französische Oberfläche, zur Laufzeit umschaltbar.
+- Nebenläufigkeits-begrenztes Abrufen, um auch bei grossen Konten deutlich unter GitHubs Sekundär-Rate-Limits zu bleiben.

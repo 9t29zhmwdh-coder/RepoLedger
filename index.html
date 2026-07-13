@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en" id="html-root">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepoLedger</title>
+<meta name="description" content="Free, client-side GitHub portfolio dashboard. CI status, open PRs, security alerts and licensing overview for any GitHub account. No backend, no data ever leaves your browser.">
+<style>
+  :root {
+    --bg: #f3f1ec; --surface: #ffffff; --surface-2: #ebe8e0; --border: #d8d4c8;
+    --text: #201d17; --muted: #6b6558; --brass: #a5762e; --brass-soft: #f1e4cc;
+    --good: #2f7d5c; --good-soft: #e2f0e8;
+    --bad: #b5473c; --bad-soft: #f5e2df;
+    --warn: #a5762e; --warn-soft: #f1e4cc;
+    --na: #8a8478; --na-soft: #ece9e2;
+    --shadow: 0 1px 2px rgba(32, 29, 23, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171c; --surface: #1b1f27; --surface-2: #20242d; --border: #2a2f3a;
+      --text: #e8eaed; --muted: #8b93a1; --brass: #d4ab5e; --brass-soft: #362c1c;
+      --good: #5fc79a; --good-soft: #1a2e26;
+      --bad: #e07a6b; --bad-soft: #35211f;
+      --warn: #d4ab5e; --warn-soft: #362c1c;
+      --na: #7b8290; --na-soft: #232730;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 22px 80px; }
+
+  header.masthead {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 20px; border-bottom: 3px solid var(--text); padding-bottom: 16px; margin-bottom: 6px;
+  }
+  h1 {
+    font-family: "Futura", "Trebuchet MS", -apple-system, sans-serif; font-weight: 800;
+    letter-spacing: -0.01em; font-size: clamp(26px, 4vw, 36px); margin: 0; text-wrap: balance;
+  }
+  .lang-switch { display: flex; gap: 4px; }
+  .lang-switch button {
+    appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-family: inherit;
+  }
+  .lang-switch button.active { background: var(--brass-soft); color: var(--brass); border-color: var(--brass); }
+
+  .tagline { color: var(--muted); font-size: 15px; max-width: 68ch; margin: 16px 0 30px; }
+
+  .setup-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; box-shadow: var(--shadow); margin-bottom: 34px;
+  }
+  .field-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 220px; }
+  .field label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  .field input {
+    font-family: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 7px; background: var(--bg); color: var(--text);
+  }
+  .field input:focus { outline: 2px solid var(--brass); outline-offset: 1px; }
+  button.primary {
+    appearance: none; border: none; background: var(--brass); color: #fff; font-family: inherit;
+    font-size: 14px; font-weight: 700; padding: 10px 22px; border-radius: 7px; cursor: pointer; white-space: nowrap;
+  }
+  button.primary:disabled { opacity: 0.5; cursor: default; }
+  button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+
+  details.token-details { margin-top: 14px; }
+  details.token-details summary { cursor: pointer; font-size: 13px; color: var(--brass); font-weight: 600; }
+  details.token-details .field { margin-top: 10px; max-width: 420px; }
+  .help-text { font-size: 12px; color: var(--muted); margin: 6px 0 0; max-width: 60ch; }
+
+  .toggles { display: flex; gap: 18px; margin-top: 18px; flex-wrap: wrap; }
+  .toggle-item { display: flex; align-items: center; gap: 7px; font-size: 13.5px; }
+  .toggle-item input { width: 16px; height: 16px; accent-color: var(--brass); }
+
+  .privacy-note {
+    font-size: 12px; color: var(--muted); margin: 16px 0 0; padding-top: 12px;
+    border-top: 1px dashed var(--border);
+  }
+
+  #status-line { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; min-height: 20px; }
+  #status-line.error { color: var(--bad); }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border);
+    border: 1px solid var(--border); margin-bottom: 26px; border-radius: 6px; overflow: hidden;
+  }
+  .stat { background: var(--surface); padding: 16px 14px; }
+  .stat .n {
+    font-family: ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums;
+    font-size: 26px; font-weight: 600; line-height: 1;
+  }
+  .stat .l { margin-top: 5px; font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat.good .n { color: var(--good); }
+  .stat.bad .n { color: var(--bad); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; background: var(--surface); }
+  th, td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+    background: var(--surface-2); font-weight: 600; white-space: nowrap;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface-2); }
+  td.repo a { color: var(--text); font-weight: 600; text-decoration: none; }
+  td.repo a:hover { color: var(--brass); text-decoration: underline; }
+  .ver { font-family: ui-monospace, "SF Mono", monospace; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+
+  .pill {
+    display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px;
+    font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  }
+  .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex: none; }
+  .pill.good { background: var(--good-soft); color: var(--good); } .pill.good::before { background: var(--good); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); } .pill.bad::before { background: var(--bad); }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.warn::before { background: var(--warn); }
+  .pill.na { background: var(--na-soft); color: var(--na); } .pill.na::before { background: var(--na); }
+
+  body.hide-health .col-health { display: none; }
+  body.hide-activity .col-activity { display: none; }
+  body.hide-licensing .col-licensing { display: none; }
+
+  .spinner {
+    display: inline-block; width: 13px; height: 13px; border: 2px solid var(--border);
+    border-top-color: var(--brass); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    margin-top: 46px; padding-top: 16px; border-top: 1px solid var(--border);
+    color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+  footer a { color: var(--muted); }
+  .empty-state { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <h1>RepoLedger</h1>
+    <div class="lang-switch">
+      <button data-lang="en" class="active">EN</button>
+      <button data-lang="de">DE</button>
+      <button data-lang="fr">FR</button>
+    </div>
+  </header>
+  <p class="tagline" data-i18n="tagline"></p>
+
+  <div class="setup-card">
+    <div class="field-row">
+      <div class="field">
+        <label for="username" data-i18n="username_label"></label>
+        <input id="username" type="text" autocomplete="off" spellcheck="false">
+      </div>
+      <button class="primary" id="load-btn" data-i18n="load_button"></button>
+    </div>
+
+    <details class="token-details">
+      <summary data-i18n="token_summary"></summary>
+      <div class="field">
+        <label for="token" data-i18n="token_label"></label>
+        <input id="token" type="password" autocomplete="off" spellcheck="false">
+      </div>
+      <p class="help-text" data-i18n="token_help"></p>
+    </details>
+
+    <div class="toggles">
+      <label class="toggle-item"><input type="checkbox" id="toggle-health" checked><span data-i18n="toggle_health"></span></label>
+      <label class="toggle-item"><input type="checkbox" id="toggle-activity" checked><span data-i18n="toggle_activity"></span></label>
+      <label class="toggle-item"><input type="checkbox" id="toggle-licensing"><span data-i18n="toggle_licensing"></span></label>
+    </div>
+
+    <p class="privacy-note" data-i18n="privacy_note"></p>
+  </div>
+
+  <div id="status-line"></div>
+  <div id="stats-strip"></div>
+  <div id="table-container"></div>
+
+  <footer>
+    <span data-i18n="footer_note"></span>
+    <span><a href="https://github.com/9t29zhmwdh-coder/RepoLedger" target="_blank" rel="noopener">github.com/9t29zhmwdh-coder/RepoLedger</a></span>
+  </footer>
+</div>
+
+<script>
+const I18N = {
+  en: {
+    tagline: "Enter any public GitHub username to see CI status, open PRs, security alerts and licensing at a glance. Runs entirely in your browser, no server, no data collection.",
+    username_label: "GitHub username",
+    load_button: "Load dashboard",
+    loading_button: "Loading…",
+    token_summary: "Optional: personal access token (for private repos or higher rate limits)",
+    token_label: "Personal access token",
+    token_help: "Only used to call the GitHub API directly from your browser. Never sent anywhere else, never stored. Without a token you're limited to 60 API calls/hour, which is plenty for a handful of repos but tight for a large account.",
+    toggle_health: "CI & Security",
+    toggle_activity: "Activity",
+    toggle_licensing: "Licensing",
+    privacy_note: "No backend. Your browser talks directly to api.github.com. Nothing is logged, stored or sent to any third party, including us.",
+    footer_note: "Free and open source. Fork it to run your own copy.",
+    status_loading: "Fetching repositories…",
+    status_fetching_details: (n, total) => `Fetching details… (${n}/${total})`,
+    status_done: (n) => `Done. ${n} repositories.`,
+    status_empty_username: "Enter a GitHub username first.",
+    status_user_not_found: "That GitHub user or token could not be found.",
+    status_rate_limited: "GitHub API rate limit reached. Add a personal access token above and try again.",
+    status_error: "Something went wrong talking to the GitHub API.",
+    stat_repos: "Repos", stat_ci_red: "CI failing", stat_open_prs: "Open PRs", stat_security: "Security alerts",
+    th_repo: "Repo", th_ci: "CI", th_prs: "Open PRs", th_security: "Security", th_pushed: "Last push",
+    th_language: "Language", th_stars: "Stars", th_license: "License",
+    ci_good: "passing", ci_bad: "failing", ci_running: "running", ci_none: "no CI",
+    security_clean: "clean", security_open: (n) => `${n} open`, security_need_token: "needs token",
+    license_none: "none", license_dual: "dual (commercial add-on)",
+    empty_state: "No public repositories found for this account.",
+  },
+  de: {
+    tagline: "Gib einen beliebigen öffentlichen GitHub-Benutzernamen ein, um CI-Status, offene PRs, Security-Meldungen und Lizenzierung auf einen Blick zu sehen. Läuft komplett in deinem Browser, kein Server, keine Datensammlung.",
+    username_label: "GitHub-Benutzername",
+    load_button: "Dashboard laden",
+    loading_button: "Lädt…",
+    token_summary: "Optional: Personal Access Token (für private Repos oder höhere Rate-Limits)",
+    token_label: "Personal Access Token",
+    token_help: "Wird nur genutzt, um die GitHub-API direkt aus deinem Browser aufzurufen. Wird nirgendwo sonst hingeschickt oder gespeichert. Ohne Token sind es 60 API-Aufrufe/Stunde, für ein paar Repos reicht das, bei grossen Konten wird es knapp.",
+    toggle_health: "CI & Security",
+    toggle_activity: "Aktivität",
+    toggle_licensing: "Lizenzierung",
+    privacy_note: "Kein Backend. Dein Browser spricht direkt mit api.github.com. Nichts wird protokolliert, gespeichert oder an Dritte gesendet, auch nicht an uns.",
+    footer_note: "Kostenlos und Open Source. Forken und selbst betreiben.",
+    status_loading: "Repositories werden geladen…",
+    status_fetching_details: (n, total) => `Details werden geladen… (${n}/${total})`,
+    status_done: (n) => `Fertig. ${n} Repositories.`,
+    status_empty_username: "Bitte zuerst einen GitHub-Benutzernamen eingeben.",
+    status_user_not_found: "Dieser GitHub-Benutzer oder Token wurde nicht gefunden.",
+    status_rate_limited: "GitHub-API-Limit erreicht. Oben einen Personal Access Token eintragen und erneut versuchen.",
+    status_error: "Beim Abruf der GitHub-API ist etwas schiefgelaufen.",
+    stat_repos: "Repos", stat_ci_red: "CI rot", stat_open_prs: "Offene PRs", stat_security: "Security-Meldungen",
+    th_repo: "Repo", th_ci: "CI", th_prs: "Offene PRs", th_security: "Security", th_pushed: "Letzter Push",
+    th_language: "Sprache", th_stars: "Stars", th_license: "Lizenz",
+    ci_good: "grün", ci_bad: "rot", ci_running: "läuft", ci_none: "kein CI",
+    security_clean: "clean", security_open: (n) => `${n} offen`, security_need_token: "Token nötig",
+    license_none: "keine", license_dual: "Dual (Commercial-Zusatz)",
+    empty_state: "Keine öffentlichen Repositories für dieses Konto gefunden.",
+  },
+  fr: {
+    tagline: "Entrez un nom d'utilisateur GitHub public pour voir l'état CI, les PR ouvertes, les alertes de sécurité et les licences en un coup d'œil. Fonctionne entièrement dans votre navigateur, sans serveur, sans collecte de données.",
+    username_label: "Nom d'utilisateur GitHub",
+    load_button: "Charger le tableau de bord",
+    loading_button: "Chargement…",
+    token_summary: "Optionnel : jeton d'accès personnel (pour dépôts privés ou limites de taux plus élevées)",
+    token_label: "Jeton d'accès personnel",
+    token_help: "Utilisé uniquement pour appeler l'API GitHub directement depuis votre navigateur. Jamais envoyé ailleurs, jamais stocké. Sans jeton, la limite est de 60 appels API/heure, suffisant pour quelques dépôts mais juste pour un grand compte.",
+    toggle_health: "CI et sécurité",
+    toggle_activity: "Activité",
+    toggle_licensing: "Licences",
+    privacy_note: "Aucun serveur. Votre navigateur communique directement avec api.github.com. Rien n'est enregistré, stocké ou envoyé à un tiers, y compris nous.",
+    footer_note: "Gratuit et open source. Forkez-le pour héberger votre propre copie.",
+    status_loading: "Récupération des dépôts…",
+    status_fetching_details: (n, total) => `Récupération des détails… (${n}/${total})`,
+    status_done: (n) => `Terminé. ${n} dépôts.`,
+    status_empty_username: "Veuillez d'abord entrer un nom d'utilisateur GitHub.",
+    status_user_not_found: "Cet utilisateur GitHub ou ce jeton n'a pas été trouvé.",
+    status_rate_limited: "Limite de l'API GitHub atteinte. Ajoutez un jeton d'accès personnel ci-dessus et réessayez.",
+    status_error: "Une erreur s'est produite lors de l'appel à l'API GitHub.",
+    stat_repos: "Dépôts", stat_ci_red: "CI en échec", stat_open_prs: "PR ouvertes", stat_security: "Alertes de sécurité",
+    th_repo: "Dépôt", th_ci: "CI", th_prs: "PR ouvertes", th_security: "Sécurité", th_pushed: "Dernier push",
+    th_language: "Langage", th_stars: "Étoiles", th_license: "Licence",
+    ci_good: "réussi", ci_bad: "échec", ci_running: "en cours", ci_none: "pas de CI",
+    security_clean: "clean", security_open: (n) => `${n} ouvertes`, security_need_token: "jeton requis",
+    license_none: "aucune", license_dual: "double (module commercial)",
+    empty_state: "Aucun dépôt public trouvé pour ce compte.",
+  },
+};
+
+let lang = 'en';
+
+function t(key, ...args) {
+  const val = I18N[lang][key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+function applyStaticI18n() {
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    const val = I18N[lang][key];
+    if (typeof val === 'string') el.textContent = val;
+  });
+  document.getElementById('html-root').lang = lang;
+  const loadBtn = document.getElementById('load-btn');
+  if (!loadBtn.disabled) loadBtn.textContent = t('load_button');
+}
+
+document.querySelectorAll('.lang-switch button').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    lang = btn.getAttribute('data-lang');
+    document.querySelectorAll('.lang-switch button').forEach((b) => b.classList.toggle('active', b === btn));
+    applyStaticI18n();
+  });
+});
+
+['toggle-health', 'toggle-activity', 'toggle-licensing'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', (e) => {
+    const cls = id.replace('toggle', 'hide');
+    document.body.classList.toggle(cls, !e.target.checked);
+  });
+});
+document.body.classList.add('hide-licensing');
+
+async function ghFetch(path, token) {
+  const headers = { Accept: 'application/vnd.github+json' };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  try {
+    const res = await fetch('https://api.github.com' + path, { headers });
+    if (!res.ok) return { ok: false, status: res.status };
+    return { ok: true, data: await res.json() };
+  } catch (e) {
+    return { ok: false, status: 0 };
+  }
+}
+
+// Simple concurrency-limited map so we don't fire 100+ requests at once
+// and blow through the rate limit instantly.
+async function mapWithConcurrency(items, limit, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+function setStatus(text, isError) {
+  const el = document.getElementById('status-line');
+  el.innerHTML = text;
+  el.classList.toggle('error', !!isError);
+}
+
+async function fetchRepoDetails(owner, name, token) {
+  const [runsRes, prsRes, depRes, codeRes] = await Promise.all([
+    ghFetch(`/repos/${owner}/${name}/actions/runs?per_page=1`, token),
+    ghFetch(`/repos/${owner}/${name}/pulls?state=open&per_page=30`, token),
+    ghFetch(`/repos/${owner}/${name}/dependabot/alerts?state=open&per_page=100`, token),
+    ghFetch(`/repos/${owner}/${name}/code-scanning/alerts?state=open&per_page=100`, token),
+  ]);
+
+  let ci = { state: 'none' };
+  if (runsRes.ok && runsRes.data.workflow_runs && runsRes.data.workflow_runs.length) {
+    const run = runsRes.data.workflow_runs[0];
+    ci = { state: run.conclusion || run.status || 'unknown', url: run.html_url };
+  }
+
+  const openPrs = prsRes.ok ? prsRes.data.length : 0;
+
+  let security = { state: 'need_token', count: 0 };
+  if (depRes.ok || codeRes.ok) {
+    const depCount = depRes.ok ? depRes.data.length : 0;
+    const codeCount = codeRes.ok ? codeRes.data.length : 0;
+    security = { state: 'known', count: depCount + codeCount };
+  }
+
+  return { ci, openPrs, security };
+}
+
+function ciPill(ci) {
+  if (ci.state === 'success') return `<span class="pill good">${t('ci_good')}</span>`;
+  if (['failure', 'timed_out', 'cancelled'].includes(ci.state)) {
+    return `<a href="${ci.url}" target="_blank" rel="noopener" style="text-decoration:none"><span class="pill bad">${t('ci_bad')}</span></a>`;
+  }
+  if (['in_progress', 'queued'].includes(ci.state)) return `<span class="pill warn">${t('ci_running')}</span>`;
+  return `<span class="pill na">${t('ci_none')}</span>`;
+}
+
+function securityPill(security) {
+  if (security.state === 'need_token') return `<span class="pill na">${t('security_need_token')}</span>`;
+  if (security.count === 0) return `<span class="pill good">${t('security_clean')}</span>`;
+  return `<span class="pill bad">${t('security_open', security.count)}</span>`;
+}
+
+function licensePill(repo) {
+  const hasCommercial = repo._hasCommercial;
+  if (hasCommercial) return `<span class="pill warn">${t('license_dual')}</span>`;
+  const name = repo.license && repo.license.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : t('license_none');
+  return `<span class="pill na">${name}</span>`;
+}
+
+function renderTable(repos) {
+  const container = document.getElementById('table-container');
+  if (repos.length === 0) {
+    container.innerHTML = `<div class="empty-state">${t('empty_state')}</div>`;
+    return;
+  }
+  const rows = repos.map((r) => `
+    <tr>
+      <td class="repo"><a href="${r.html_url}" target="_blank" rel="noopener">${r.name}</a></td>
+      <td class="col-health">${ciPill(r._ci)}</td>
+      <td class="col-health"><span class="pill ${r._openPrs > 0 ? 'warn' : 'good'}">${r._openPrs}</span></td>
+      <td class="col-health">${securityPill(r._security)}</td>
+      <td class="col-activity ver">${(r.pushed_at || '').slice(0, 10) || '-'}</td>
+      <td class="col-activity">${r.language || '-'}</td>
+      <td class="col-activity ver">${r.stargazers_count}</td>
+      <td class="col-licensing">${licensePill(r)}</td>
+    </tr>`).join('');
+
+  container.innerHTML = `
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>${t('th_repo')}</th>
+            <th class="col-health">${t('th_ci')}</th>
+            <th class="col-health">${t('th_prs')}</th>
+            <th class="col-health">${t('th_security')}</th>
+            <th class="col-activity">${t('th_pushed')}</th>
+            <th class="col-activity">${t('th_language')}</th>
+            <th class="col-activity">${t('th_stars')}</th>
+            <th class="col-licensing">${t('th_license')}</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderStats(repos) {
+  const ciFailing = repos.filter((r) => ['failure', 'timed_out', 'cancelled'].includes(r._ci.state)).length;
+  const openPrTotal = repos.reduce((sum, r) => sum + r._openPrs, 0);
+  const secTotal = repos.reduce((sum, r) => sum + (r._security.count || 0), 0);
+  document.getElementById('stats-strip').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="n">${repos.length}</div><div class="l">${t('stat_repos')}</div></div>
+      <div class="stat ${ciFailing > 0 ? 'bad' : 'good'}"><div class="n">${ciFailing}</div><div class="l">${t('stat_ci_red')}</div></div>
+      <div class="stat ${openPrTotal > 0 ? '' : 'good'}"><div class="n">${openPrTotal}</div><div class="l">${t('stat_open_prs')}</div></div>
+      <div class="stat ${secTotal > 0 ? 'bad' : 'good'}"><div class="n">${secTotal}</div><div class="l">${t('stat_security')}</div></div>
+    </div>`;
+}
+
+async function checkDualLicense(owner, name, token) {
+  const res = await ghFetch(`/repos/${owner}/${name}/contents/LICENSE.COMMERCIAL`, token);
+  return res.ok;
+}
+
+async function loadDashboard() {
+  const username = document.getElementById('username').value.trim();
+  const token = document.getElementById('token').value.trim();
+  const loadBtn = document.getElementById('load-btn');
+
+  document.getElementById('stats-strip').innerHTML = '';
+  document.getElementById('table-container').innerHTML = '';
+
+  if (!username && !token) {
+    setStatus(t('status_empty_username'), true);
+    return;
+  }
+
+  loadBtn.disabled = true;
+  loadBtn.textContent = t('loading_button');
+  setStatus(`<span class="spinner"></span> ${t('status_loading')}`);
+
+  const listPath = token
+    ? `/user/repos?per_page=100&affiliation=owner`
+    : `/users/${encodeURIComponent(username)}/repos?per_page=100&type=owner`;
+  const listRes = await ghFetch(listPath, token);
+
+  if (!listRes.ok) {
+    loadBtn.disabled = false;
+    loadBtn.textContent = t('load_button');
+    if (listRes.status === 404) setStatus(t('status_user_not_found'), true);
+    else if (listRes.status === 403) setStatus(t('status_rate_limited'), true);
+    else setStatus(t('status_error'), true);
+    return;
+  }
+
+  const repos = listRes.data;
+  let done = 0;
+
+  await mapWithConcurrency(repos, 2, async (repo) => {
+    const owner = repo.owner.login;
+    const [details, dual] = await Promise.all([
+      fetchRepoDetails(owner, repo.name, token),
+      checkDualLicense(owner, repo.name, token),
+    ]);
+    repo._ci = details.ci;
+    repo._openPrs = details.openPrs;
+    repo._security = details.security;
+    repo._hasCommercial = dual;
+    done++;
+    setStatus(`<span class="spinner"></span> ${t('status_fetching_details', done, repos.length)}`);
+  });
+
+  setStatus(t('status_done', repos.length));
+  renderStats(repos);
+  renderTable(repos);
+  loadBtn.disabled = false;
+  loadBtn.textContent = t('load_button');
+}
+
+document.getElementById('load-btn').addEventListener('click', loadDashboard);
+document.getElementById('username').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadDashboard(); });
+
+applyStaticI18n();
+</script>
+</body>
+</html>
