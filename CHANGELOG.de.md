@@ -4,7 +4,7 @@
   <h1>Changelog</h1>
 </div>
 
-> 🇬🇧 [English Version](CHANGELOG.md)
+[🇬🇧 English Version](CHANGELOG.md)
 
 Alle relevanten Änderungen an diesem Projekt werden hier dokumentiert.
 Format nach [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
