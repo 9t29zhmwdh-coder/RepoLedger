@@ -6,7 +6,7 @@
 
 [![Pages](https://img.shields.io/badge/Live-RepoLedger-a5762e)](https://raystudio.ch/RepoLedger/) ![No backend](https://img.shields.io/badge/Backend-none-2f7d5c) ![AI | Claude Code](https://img.shields.io/badge/AI-Claude_Code-black?logo=anthropic&logoColor=white)
 
-🇩🇪 [Deutsche Version](README.de.md)
+[🇩🇪 Deutsche Version](README.de.md)
 
 A free, client-side GitHub portfolio dashboard. Enter any public GitHub username to see CI status, open PRs, security alerts and licensing at a glance, with a link straight to each repo.
 
