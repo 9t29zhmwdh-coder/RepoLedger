@@ -4,8 +4,8 @@
   <h1>RepoLedger</h1>
 </div>
 
+[![CodeQL](https://github.com/9t29zhmwdh-coder/RepoLedger/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/9t29zhmwdh-coder/RepoLedger/security/code-scanning) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/9t29zhmwdh-coder/RepoLedger/badge)](https://securityscorecards.dev/viewer/?uri=github.com/9t29zhmwdh-coder/RepoLedger)
 [![Pages](https://img.shields.io/badge/Live-RepoLedger-a5762e)](https://raystudio.ch/RepoLedger/) ![No backend](https://img.shields.io/badge/Backend-none-2f7d5c) ![AI | Claude Code](https://img.shields.io/badge/AI-Claude_Code-black?logo=anthropic&logoColor=white)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/9t29zhmwdh-coder/RepoLedger/badge)](https://securityscorecards.dev/viewer/?uri=github.com/9t29zhmwdh-coder/RepoLedger)
 
 [🇬🇧 English Version](README.md)
 
