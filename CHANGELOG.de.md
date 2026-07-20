@@ -11,6 +11,15 @@ Format nach [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.0.1] - 2026-07-20
+
+### Geändert
+
+- OpenSSF Scorecard Workflow und Badge.
+- `copilot-instructions.md` für konsistente KI-unterstützte Beiträge.
+- CodeQL-Badge ergänzt, Badge-Zeilen-Isolation im README korrigiert.
+- Sicherheits-/CI-Badges und Tech-/AI-Badges in getrennte README-Zeilen aufgeteilt (rendeten vorher als eine Zeile).
+
 ## [1.0.0] - 2026-07-13
 
 ### Added
