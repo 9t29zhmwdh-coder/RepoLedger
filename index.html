@@ -212,11 +212,12 @@ const I18N = {
     status_user_not_found: "That GitHub user or token could not be found.",
     status_rate_limited: "GitHub API rate limit reached. Add a personal access token above and try again.",
     status_error: "Something went wrong talking to the GitHub API.",
+    status_rate_limited_partial: "GitHub API rate limit reached partway through. Rows marked \"rate limited\" could not be checked, add a personal access token above for accurate results.",
     stat_repos: "Repos", stat_ci_red: "CI failing", stat_open_prs: "Open PRs", stat_security: "Security alerts",
     th_repo: "Repo", th_ci: "CI", th_prs: "Open PRs", th_security: "Security", th_pushed: "Last push",
     th_language: "Language", th_stars: "Stars", th_license: "License",
-    ci_good: "passing", ci_bad: "failing", ci_running: "running", ci_none: "no CI",
-    security_clean: "clean", security_open: (n) => `${n} open`, security_need_token: "needs token",
+    ci_good: "passing", ci_bad: "failing", ci_running: "running", ci_none: "no CI", ci_limited: "rate limited",
+    security_clean: "clean", security_open: (n) => `${n} open`, security_need_token: "needs token", security_limited: "rate limited",
     license_none: "none", license_dual: "dual (commercial add-on)",
     empty_state: "No public repositories found for this account.",
   },
@@ -240,11 +241,12 @@ const I18N = {
     status_user_not_found: "Dieser GitHub-Benutzer oder Token wurde nicht gefunden.",
     status_rate_limited: "GitHub-API-Limit erreicht. Oben einen Personal Access Token eintragen und erneut versuchen.",
     status_error: "Beim Abruf der GitHub-API ist etwas schiefgelaufen.",
+    status_rate_limited_partial: "GitHub-API-Limit wurde zwischendurch erreicht. Zeilen mit \"Rate-Limit\" konnten nicht geprüft werden, für verlässliche Ergebnisse oben einen Personal Access Token eintragen.",
     stat_repos: "Repos", stat_ci_red: "CI rot", stat_open_prs: "Offene PRs", stat_security: "Security-Meldungen",
     th_repo: "Repo", th_ci: "CI", th_prs: "Offene PRs", th_security: "Security", th_pushed: "Letzter Push",
     th_language: "Sprache", th_stars: "Stars", th_license: "Lizenz",
-    ci_good: "grün", ci_bad: "rot", ci_running: "läuft", ci_none: "kein CI",
-    security_clean: "clean", security_open: (n) => `${n} offen`, security_need_token: "Token nötig",
+    ci_good: "grün", ci_bad: "rot", ci_running: "läuft", ci_none: "kein CI", ci_limited: "Rate-Limit",
+    security_clean: "clean", security_open: (n) => `${n} offen`, security_need_token: "Token nötig", security_limited: "Rate-Limit",
     license_none: "keine", license_dual: "Dual (Commercial-Zusatz)",
     empty_state: "Keine öffentlichen Repositories für dieses Konto gefunden.",
   },
@@ -268,11 +270,12 @@ const I18N = {
     status_user_not_found: "Cet utilisateur GitHub ou ce jeton n'a pas été trouvé.",
     status_rate_limited: "Limite de l'API GitHub atteinte. Ajoutez un jeton d'accès personnel ci-dessus et réessayez.",
     status_error: "Une erreur s'est produite lors de l'appel à l'API GitHub.",
+    status_rate_limited_partial: "Limite de l'API GitHub atteinte en cours de route. Les lignes marquées \"limite atteinte\" n'ont pas pu être vérifiées, ajoutez un jeton d'accès personnel ci-dessus pour des résultats fiables.",
     stat_repos: "Dépôts", stat_ci_red: "CI en échec", stat_open_prs: "PR ouvertes", stat_security: "Alertes de sécurité",
     th_repo: "Dépôt", th_ci: "CI", th_prs: "PR ouvertes", th_security: "Sécurité", th_pushed: "Dernier push",
     th_language: "Langage", th_stars: "Étoiles", th_license: "Licence",
-    ci_good: "réussi", ci_bad: "échec", ci_running: "en cours", ci_none: "pas de CI",
-    security_clean: "clean", security_open: (n) => `${n} ouvertes`, security_need_token: "jeton requis",
+    ci_good: "réussi", ci_bad: "échec", ci_running: "en cours", ci_none: "pas de CI", ci_limited: "limite atteinte",
+    security_clean: "clean", security_open: (n) => `${n} ouvertes`, security_need_token: "jeton requis", security_limited: "limite atteinte",
     license_none: "aucune", license_dual: "double (module commercial)",
     empty_state: "Aucun dépôt public trouvé pour ce compte.",
   },
@@ -317,10 +320,14 @@ async function ghFetch(path, token) {
   if (token) headers.Authorization = 'Bearer ' + token;
   try {
     const res = await fetch('https://api.github.com' + path, { headers });
-    if (!res.ok) return { ok: false, status: res.status };
-    return { ok: true, data: await res.json() };
+    // A 403 with 0 remaining calls means "rate limited", not "forbidden" or
+    // "doesn't exist" -- callers need to tell those apart instead of treating
+    // every non-2xx response as a confirmed "no data" result.
+    const rateLimited = res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0';
+    if (!res.ok) return { ok: false, status: res.status, rateLimited };
+    return { ok: true, status: res.status, data: await res.json(), rateLimited: false };
   } catch (e) {
-    return { ok: false, status: 0 };
+    return { ok: false, status: 0, rateLimited: false };
   }
 }
 
@@ -353,22 +360,42 @@ async function fetchRepoDetails(owner, name, token) {
     ghFetch(`/repos/${owner}/${name}/code-scanning/alerts?state=open&per_page=100`, token),
   ]);
 
-  let ci = { state: 'none' };
-  if (runsRes.ok && runsRes.data.workflow_runs && runsRes.data.workflow_runs.length) {
-    const run = runsRes.data.workflow_runs[0];
-    ci = { state: run.conclusion || run.status || 'unknown', url: run.html_url };
+  let rateLimited = false;
+
+  // "no CI" only means something once we've actually seen a confirmed,
+  // successful, empty response. A failed call (rate limit, transient error)
+  // must not silently collapse into the same "none" state, otherwise a
+  // rate-limited account looks identical to one with zero CI history.
+  let ci = { state: 'unknown' };
+  if (runsRes.ok) {
+    const runs = runsRes.data.workflow_runs || [];
+    if (runs.length) {
+      const run = runs[0];
+      ci = { state: run.conclusion || run.status || 'unknown', url: run.html_url };
+    } else {
+      ci = { state: 'none' };
+    }
+  } else if (runsRes.rateLimited) {
+    rateLimited = true;
   }
 
   const openPrs = prsRes.ok ? prsRes.data.length : 0;
 
+  // The Dependabot/code-scanning alert endpoints return 401 for unauthenticated
+  // requests even on public repos, so "need_token" is a real, correct state
+  // when there is no token. But a 403 rate-limit hit on an authenticated
+  // request is a different problem and must not be reported the same way.
   let security = { state: 'need_token', count: 0 };
   if (depRes.ok || codeRes.ok) {
     const depCount = depRes.ok ? depRes.data.length : 0;
     const codeCount = codeRes.ok ? codeRes.data.length : 0;
     security = { state: 'known', count: depCount + codeCount };
+  } else if (depRes.rateLimited || codeRes.rateLimited) {
+    security = { state: 'unknown', count: 0 };
+    rateLimited = true;
   }
 
-  return { ci, openPrs, security };
+  return { ci, openPrs, security, rateLimited };
 }
 
 function ciPill(ci) {
@@ -377,11 +404,13 @@ function ciPill(ci) {
     return `<a href="${ci.url}" target="_blank" rel="noopener" style="text-decoration:none"><span class="pill bad">${t('ci_bad')}</span></a>`;
   }
   if (['in_progress', 'queued'].includes(ci.state)) return `<span class="pill warn">${t('ci_running')}</span>`;
+  if (ci.state === 'unknown') return `<span class="pill warn">${t('ci_limited')}</span>`;
   return `<span class="pill na">${t('ci_none')}</span>`;
 }
 
 function securityPill(security) {
   if (security.state === 'need_token') return `<span class="pill na">${t('security_need_token')}</span>`;
+  if (security.state === 'unknown') return `<span class="pill warn">${t('security_limited')}</span>`;
   if (security.count === 0) return `<span class="pill good">${t('security_clean')}</span>`;
   return `<span class="pill bad">${t('security_open', security.count)}</span>`;
 }
@@ -482,6 +511,7 @@ async function loadDashboard() {
 
   const repos = listRes.data;
   let done = 0;
+  let anyRateLimited = false;
 
   await mapWithConcurrency(repos, 2, async (repo) => {
     const owner = repo.owner.login;
@@ -493,11 +523,16 @@ async function loadDashboard() {
     repo._openPrs = details.openPrs;
     repo._security = details.security;
     repo._hasCommercial = dual;
+    if (details.rateLimited) anyRateLimited = true;
     done++;
     setStatus(`<span class="spinner"></span> ${t('status_fetching_details', done, repos.length)}`);
   });
 
-  setStatus(t('status_done', repos.length));
+  if (anyRateLimited) {
+    setStatus(t('status_rate_limited_partial'), true);
+  } else {
+    setStatus(t('status_done', repos.length));
+  }
   renderStats(repos);
   renderTable(repos);
   loadBtn.disabled = false;

@@ -11,6 +11,12 @@ Format nach [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- CI- und Security-Spalte fielen stillschweigend auf "kein CI"/"Token nötig" zurück, sobald der zugrunde liegende GitHub-API-Call aus irgendeinem Grund fehlschlug, auch wenn mitten im Durchlauf das unauthentifizierte Rate-Limit erreicht wurde. Ein rate-limitiertes Repo wird jetzt klar als "Rate-Limit" angezeigt statt identisch mit einem Repo ohne CI oder ohne Token auszusehen, dazu ein Status-Hinweis, wenn das passiert.
+
 ## [1.0.1] - 2026-07-20
 
 ### Geändert

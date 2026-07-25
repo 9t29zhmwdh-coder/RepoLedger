@@ -11,6 +11,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- CI and Security columns silently fell back to "no CI" / "needs token" whenever the underlying GitHub API call failed for any reason, including hitting the unauthenticated rate limit partway through a larger account. A rate-limited repo is now shown distinctly ("rate limited") instead of looking identical to a repo that genuinely has no CI or a genuinely missing token, and a status banner explains what happened when it occurs.
+
 ## [1.0.1] - 2026-07-20
 
 ### Changed
