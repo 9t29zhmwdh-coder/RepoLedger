@@ -415,11 +415,22 @@ function securityPill(security) {
   return `<span class="pill bad">${t('security_open', security.count)}</span>`;
 }
 
+function escapeHtml(value) {
+  // Die Tabelle rendert Daten fremder GitHub-Accounts per innerHTML. Aktuell
+  // sind alle eingesetzten Felder von GitHub formatbeschraenkt, Repo-Namen
+  // etwa auf A-Za-z0-9._-, also ist nichts davon ausnutzbar. Das gilt aber nur
+  // fuer genau diese Felder: wer hier spaeter description oder topics
+  // ergaenzt, haette ohne diese Funktion sofort eine Injektionsstelle.
+  return String(value ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[c]);
+}
+
 function licensePill(repo) {
   const hasCommercial = repo._hasCommercial;
   if (hasCommercial) return `<span class="pill warn">${t('license_dual')}</span>`;
   const name = repo.license && repo.license.spdx_id && repo.license.spdx_id !== 'NOASSERTION' ? repo.license.spdx_id : t('license_none');
-  return `<span class="pill na">${name}</span>`;
+  return `<span class="pill na">${escapeHtml(name)}</span>`;
 }
 
 function renderTable(repos) {
@@ -430,12 +441,12 @@ function renderTable(repos) {
   }
   const rows = repos.map((r) => `
     <tr>
-      <td class="repo"><a href="${r.html_url}" target="_blank" rel="noopener">${r.name}</a></td>
+      <td class="repo"><a href="${escapeHtml(r.html_url)}" target="_blank" rel="noopener">${escapeHtml(r.name)}</a></td>
       <td class="col-health">${ciPill(r._ci)}</td>
       <td class="col-health"><span class="pill ${r._openPrs > 0 ? 'warn' : 'good'}">${r._openPrs}</span></td>
       <td class="col-health">${securityPill(r._security)}</td>
       <td class="col-activity ver">${(r.pushed_at || '').slice(0, 10) || '-'}</td>
-      <td class="col-activity">${r.language || '-'}</td>
+      <td class="col-activity">${escapeHtml(r.language || '-')}</td>
       <td class="col-activity ver">${r.stargazers_count}</td>
       <td class="col-licensing">${licensePill(r)}</td>
     </tr>`).join('');

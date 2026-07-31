@@ -11,6 +11,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.7] - 2026-07-31
+
+### Security
+
+- Values coming back from the GitHub API are HTML-escaped before being rendered. The table renders data belonging to whichever account you point the page at, and it was interpolated straight into an `innerHTML` template with no escaping anywhere in the file. Nothing displayed today can carry markup, because GitHub constrains those particular fields: repository names allow only `A-Za-z0-9._-`, languages and SPDX identifiers come from fixed lists. That constraint is GitHub's and covers only these fields, so a later change adding a description or a topic list, both free text, would have introduced an injection point with nothing in the code to catch it.
+- A `SECURITY.md` exists. This is a public tool that talks to an API and optionally accepts a personal access token, and there was no private way to report a problem with it.
+
+---
+
 ## [1.1.6] - 2026-07-31
 
 ### Changed
