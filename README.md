@@ -10,9 +10,23 @@
 
 [🇩🇪 Deutsche Version](README.de.md)
 
-A free, client-side GitHub portfolio dashboard. Enter any public GitHub username to see CI status, open PRs, security alerts and licensing at a glance, with a link straight to each repo.
+**Every repo you own on one page: which builds are red, which PRs are waiting, which have security alerts.**
 
-> **How it runs:** RepoLedger is a single static HTML page with no backend and no build step. Your browser calls the public GitHub API directly; nothing is proxied, logged, or stored anywhere, including by us.
+Once you pass a handful of repositories, GitHub gives you no view of them
+together. Finding the one with the failing build means opening tabs until you
+hit it, and a repo with an open alert stays invisible until you happen to look
+at it.
+
+Type a public GitHub username and get all of them in one table, each row
+linking straight to the repo.
+
+It is one static HTML page. Your browser calls the public GitHub API directly:
+there is no backend, nothing is proxied, logged or stored, including by me.
+
+**Not for you if** you want to act on what you find. This only reads; issues,
+merges and dismissals still happen on GitHub itself.
+
+> **How it runs:** RepoLedger is a single static HTML page with no backend and no build step. Your browser calls the public GitHub API directly; nothing is proxied, logged, or stored anywhere, including by me.
 
 ## Try it
 

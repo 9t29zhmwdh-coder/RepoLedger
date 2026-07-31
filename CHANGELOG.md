@@ -11,6 +11,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.1.6] - 2026-07-31
+
+### Changed
+
+- Both READMEs now open with what GitHub does not give you, which is any view of your repositories together, so finding the one with the red build means opening tabs until you hit it. A short paragraph says the page only reads: issues, merges and dismissals still happen on GitHub.
+- The privacy note said nothing is stored "including by us". There is no "us"; it now reads "by me", matching the first-person convention the other documents follow.
+
+---
+
 ## [1.1.5] - 2026-07-29
 
 ### Security
