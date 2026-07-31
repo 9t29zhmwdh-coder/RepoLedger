@@ -10,9 +10,24 @@
 
 [🇬🇧 English Version](README.md)
 
-Ein kostenloses, rein clientseitiges GitHub-Portfolio-Dashboard. Gib einen beliebigen öffentlichen GitHub-Benutzernamen ein und sieh CI-Status, offene PRs, Security-Meldungen und Lizenzierung auf einen Blick, inklusive Link zum jeweiligen Repo.
+**Alle deine Repos auf einer Seite: welche Builds rot sind, welche PRs warten, wo Security-Meldungen offen liegen.**
 
-> **So läuft es:** RepoLedger ist eine einzige statische HTML-Seite, kein Backend, kein Build-Schritt. Dein Browser ruft die öffentliche GitHub-API direkt auf, nichts wird irgendwo geloggt oder gespeichert, auch nicht von uns.
+Ab einer Handvoll Repositories bietet GitHub keine Ansicht, die sie zusammen
+zeigt. Das eine mit dem kaputten Build zu finden heisst, Tabs aufzumachen, bis
+man es erwischt, und ein Repo mit offener Meldung bleibt unsichtbar, bis man
+zufällig hinschaut.
+
+Öffentlichen GitHub-Benutzernamen eintippen und alle in einer Tabelle
+bekommen, jede Zeile verlinkt direkt aufs Repo.
+
+Es ist eine statische HTML-Seite. Dein Browser ruft die öffentliche GitHub-API
+direkt auf: kein Backend, nichts wird weitergeleitet, geloggt oder gespeichert,
+auch nicht von mir.
+
+**Nichts für dich, wenn** du auf das Gefundene reagieren willst. Das hier liest
+nur; Issues, Merges und Erledigungen passieren weiterhin auf GitHub selbst.
+
+> **So läuft es:** RepoLedger ist eine einzige statische HTML-Seite, kein Backend, kein Build-Schritt. Dein Browser ruft die öffentliche GitHub-API direkt auf, nichts wird irgendwo geloggt oder gespeichert, auch nicht von mir.
 
 ## Ausprobieren
 
