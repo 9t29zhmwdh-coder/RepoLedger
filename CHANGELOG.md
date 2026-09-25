@@ -11,6 +11,24 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] - 2026-09-25
+
+### Fixed
+
+- With a token, the typed username was ignored and the table always showed the token owner's repos. A token now only switches to your own repos (including private ones) when the username is empty or your own; any other name shows that account's public repos.
+- Without a token, every repo cost five API calls, two of them for security alerts that GitHub always refuses without a token. Those two are skipped now, so the 60 hourly calls cover about 19 repos instead of 11.
+- The security column said "needs token" even when a token was set. It now says "no access" when GitHub withholds the alerts from that token, and "not enabled" when the repo has Dependabot alerts and code scanning switched off.
+- Accounts with more than 100 repos were cut off at 100 without notice. The list now follows every page.
+- The open PR count stopped at 30; it now counts up to 100.
+- An invalid token reported a generic error instead of "user or token not found".
+
+### Changed
+
+- The page opens in the browser's language (English, German or French) instead of always English.
+- The README and the token help text no longer say that no scopes are needed: security alerts require read access to Dependabot and code scanning alerts and admin rights on the repo.
+
+---
+
 ## [1.1.8] - 2026-08-04
 
 ### Fixed
