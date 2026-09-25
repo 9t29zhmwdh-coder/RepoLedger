@@ -45,7 +45,13 @@ Jeder Bereich lässt sich einzeln ein-/ausblenden, die Seite läuft auf Englisch
 
 ## Rate-Limits
 
-Ohne Token erlaubt GitHub 60 unauthentifizierte API-Aufrufe pro Stunde und IP-Adresse, geteilt mit allen im selben Netzwerk. Das reicht für ein paar Repos, wird aber bei einem grossen Konto knapp. Mit einem eigenen [Personal Access Token](https://github.com/settings/tokens) (keine Scopes nötig für öffentliche Daten) im optionalen Feld steigt das auf 5'000 Aufrufe/Stunde. Der Token geht ausschliesslich direkt von deinem Browser an `api.github.com`, nirgendwo sonst hin.
+Ohne Token erlaubt GitHub 60 unauthentifizierte API-Aufrufe pro Stunde und IP-Adresse, geteilt mit allen im selben Netzwerk. RepoLedger braucht drei pro Repo und einen für die Liste, das reicht also für etwa 19 Repos. Zeilen, die nicht mehr geprüft werden konnten, stehen als "Rate-Limit" da und nicht als sauber.
+
+Ein [Personal Access Token](https://github.com/settings/tokens) im optionalen Feld hebt das auf 5'000 Aufrufe/Stunde. Der Token geht ausschliesslich direkt von deinem Browser an `api.github.com`, nirgendwo sonst hin.
+
+- **Benutzername leer** (oder dein eigener): deine Repos, auch private.
+- **Anderer Benutzername**: dessen öffentliche Repos, wie ohne Token.
+- **Security-Meldungen** sind keine öffentlichen Daten. GitHub zeigt sie nur für Repos, die du verwaltest, und nur einem Token mit Lesezugriff auf Dependabot-Alerts und Code-Scanning-Alerts (Fine-grained Token) oder dem Scope `security_events` (klassischer Token). Sonst steht in der Spalte "Token nötig", "kein Zugriff" oder "nicht aktiviert", wenn im Repo beide Funktionen abgeschaltet sind.
 
 ## Eigene Kopie betreiben
 

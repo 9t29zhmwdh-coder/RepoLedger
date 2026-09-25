@@ -11,6 +11,24 @@ Format nach [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [1.2.0] - 2026-09-25
+
+### Behoben
+
+- Mit Token wurde der eingegebene Benutzername ignoriert, die Tabelle zeigte immer die Repos des Token-Besitzers. Jetzt wechselt ein Token nur dann auf die eigenen Repos (auch private), wenn das Namensfeld leer ist oder den eigenen Namen enthält; jeder andere Name zeigt die öffentlichen Repos dieses Kontos.
+- Ohne Token kostete jedes Repo fünf API-Aufrufe, zwei davon für Security-Meldungen, die GitHub ohne Token immer verweigert. Diese beiden entfallen, die 60 Aufrufe pro Stunde reichen damit für etwa 19 statt 11 Repos.
+- Die Security-Spalte zeigte "Token nötig", auch wenn ein Token eingetragen war. Jetzt steht dort "kein Zugriff", wenn GitHub dem Token die Meldungen vorenthält, und "nicht aktiviert", wenn im Repo Dependabot-Alerts und Code Scanning abgeschaltet sind.
+- Konten mit mehr als 100 Repos wurden ohne Hinweis bei 100 abgeschnitten. Die Liste liest jetzt alle Seiten.
+- Die Zahl offener PRs endete bei 30, jetzt zählt sie bis 100.
+- Ein ungültiger Token meldete einen allgemeinen Fehler statt "Benutzer oder Token nicht gefunden".
+
+### Geändert
+
+- Die Seite öffnet in der Browsersprache (Englisch, Deutsch oder Französisch) statt immer auf Englisch.
+- README und Token-Hilfetext behaupten nicht mehr, es brauche keine Scopes: Security-Meldungen verlangen Lesezugriff auf Dependabot- und Code-Scanning-Alerts und Admin-Rechte am Repo.
+
+---
+
 ## [1.1.0] - 2026-07-25
 
 ### Fixed

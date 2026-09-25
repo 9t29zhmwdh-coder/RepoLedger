@@ -44,7 +44,13 @@ Each section can be toggled on or off independently, and the page works in Engli
 
 ## Rate limits
 
-Without a token, GitHub allows 60 unauthenticated API calls per hour per IP address, shared across everyone on your network. That's enough for a handful of repos but tight for a large account. Add your own [personal access token](https://github.com/settings/tokens) (no scopes needed for public data) in the optional field to raise this to 5,000 calls/hour. The token is only ever sent directly from your browser to `api.github.com`, never anywhere else.
+Without a token, GitHub allows 60 unauthenticated API calls per hour per IP address, shared across everyone on your network. RepoLedger needs three per repo plus one for the list, so that covers about 19 repos. Rows it could not check are marked "rate limited" rather than shown as clean.
+
+A [personal access token](https://github.com/settings/tokens) in the optional field raises this to 5,000 calls/hour. The token is only ever sent directly from your browser to `api.github.com`, never anywhere else.
+
+- **Username empty** (or your own): your repos, including private ones.
+- **Any other username**: that account's public repos, same as without a token.
+- **Security alerts** are not public data. GitHub shows them only for repos you administer, and only to a token with read access to Dependabot alerts and code scanning alerts (fine-grained token), or the `security_events` scope (classic token). Without that, the column says "needs token", "no access", or "not enabled" when the repo has both features switched off.
 
 ## Run your own copy
 

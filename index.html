@@ -199,7 +199,7 @@ const I18N = {
     loading_button: "Loading…",
     token_summary: "Optional: personal access token (for private repos or higher rate limits)",
     token_label: "Personal access token",
-    token_help: "Only used to call the GitHub API directly from your browser. Never sent anywhere else, never stored. Without a token you're limited to 60 API calls/hour, which is plenty for a handful of repos but tight for a large account.",
+    token_help: "Only used to call the GitHub API directly from your browser. Never sent anywhere else, never stored. Without a token GitHub allows 60 calls/hour, enough for about 19 repos, and security alerts stay hidden. Leave the username empty to see your own repos including private ones. Alerts need a token with Dependabot and code scanning read access, and GitHub only shows them for repos you administer.",
     toggle_health: "CI & Security",
     toggle_activity: "Activity",
     toggle_licensing: "Licensing",
@@ -218,6 +218,7 @@ const I18N = {
     th_language: "Language", th_stars: "Stars", th_license: "License",
     ci_good: "passing", ci_bad: "failing", ci_running: "running", ci_none: "no CI", ci_limited: "rate limited",
     security_clean: "clean", security_open: (n) => `${n} open`, security_need_token: "needs token", security_limited: "rate limited",
+    security_no_access: "no access", security_off: "not enabled",
     license_none: "none", license_dual: "dual (commercial add-on)",
     empty_state: "No public repositories found for this account.",
   },
@@ -228,7 +229,7 @@ const I18N = {
     loading_button: "Lädt…",
     token_summary: "Optional: Personal Access Token (für private Repos oder höhere Rate-Limits)",
     token_label: "Personal Access Token",
-    token_help: "Wird nur genutzt, um die GitHub-API direkt aus deinem Browser aufzurufen. Wird nirgendwo sonst hingeschickt oder gespeichert. Ohne Token sind es 60 API-Aufrufe/Stunde, für ein paar Repos reicht das, bei grossen Konten wird es knapp.",
+    token_help: "Wird nur genutzt, um die GitHub-API direkt aus deinem Browser aufzurufen. Wird nirgendwo sonst hingeschickt oder gespeichert. Ohne Token erlaubt GitHub 60 Aufrufe/Stunde, das reicht für etwa 19 Repos, und Security-Meldungen bleiben verborgen. Benutzername leer lassen, um die eigenen Repos samt privaten zu sehen. Meldungen brauchen einen Token mit Lesezugriff auf Dependabot und Code Scanning, und GitHub zeigt sie nur für Repos, die du verwaltest.",
     toggle_health: "CI & Security",
     toggle_activity: "Aktivität",
     toggle_licensing: "Lizenzierung",
@@ -247,6 +248,7 @@ const I18N = {
     th_language: "Sprache", th_stars: "Stars", th_license: "Lizenz",
     ci_good: "grün", ci_bad: "rot", ci_running: "läuft", ci_none: "kein CI", ci_limited: "Rate-Limit",
     security_clean: "clean", security_open: (n) => `${n} offen`, security_need_token: "Token nötig", security_limited: "Rate-Limit",
+    security_no_access: "kein Zugriff", security_off: "nicht aktiviert",
     license_none: "keine", license_dual: "Dual (Commercial-Zusatz)",
     empty_state: "Keine öffentlichen Repositories für dieses Konto gefunden.",
   },
@@ -257,7 +259,7 @@ const I18N = {
     loading_button: "Chargement…",
     token_summary: "Optionnel : jeton d'accès personnel (pour dépôts privés ou limites de taux plus élevées)",
     token_label: "Jeton d'accès personnel",
-    token_help: "Utilisé uniquement pour appeler l'API GitHub directement depuis votre navigateur. Jamais envoyé ailleurs, jamais stocké. Sans jeton, la limite est de 60 appels API/heure, suffisant pour quelques dépôts mais juste pour un grand compte.",
+    token_help: "Utilisé uniquement pour appeler l'API GitHub directement depuis votre navigateur. Jamais envoyé ailleurs, jamais stocké. Sans jeton, GitHub autorise 60 appels/heure, assez pour environ 19 dépôts, et les alertes de sécurité restent masquées. Laissez le nom d'utilisateur vide pour voir vos propres dépôts, privés compris. Les alertes demandent un jeton avec lecture Dependabot et code scanning, et GitHub ne les montre que pour les dépôts que vous administrez.",
     toggle_health: "CI et sécurité",
     toggle_activity: "Activité",
     toggle_licensing: "Licences",
@@ -276,12 +278,15 @@ const I18N = {
     th_language: "Langage", th_stars: "Étoiles", th_license: "Licence",
     ci_good: "réussi", ci_bad: "échec", ci_running: "en cours", ci_none: "pas de CI", ci_limited: "limite atteinte",
     security_clean: "clean", security_open: (n) => `${n} ouvertes`, security_need_token: "jeton requis", security_limited: "limite atteinte",
+    security_no_access: "pas d'accès", security_off: "non activé",
     license_none: "aucune", license_dual: "double (module commercial)",
     empty_state: "Aucun dépôt public trouvé pour ce compte.",
   },
 };
 
-let lang = 'en';
+// The browser's language decides until the visitor picks one.
+let lang = ['de', 'fr'].find((code) => (navigator.language || 'en').toLowerCase().startsWith(code)) || 'en';
+document.querySelectorAll('.lang-switch button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-lang') === lang));
 
 function t(key, ...args) {
   const val = I18N[lang][key];
@@ -324,7 +329,10 @@ async function ghFetch(path, token) {
     // "doesn't exist" -- callers need to tell those apart instead of treating
     // every non-2xx response as a confirmed "no data" result.
     const rateLimited = res.status === 403 && res.headers.get('x-ratelimit-remaining') === '0';
-    if (!res.ok) return { ok: false, status: res.status, rateLimited };
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { ok: false, status: res.status, rateLimited, message: body.message || '' };
+    }
     return { ok: true, status: res.status, data: await res.json(), rateLimited: false };
   } catch (e) {
     return { ok: false, status: 0, rateLimited: false };
@@ -352,12 +360,22 @@ function setStatus(text, isError) {
   el.classList.toggle('error', !!isError);
 }
 
+// GitHub's wording when Dependabot alerts or code scanning are simply switched
+// off for a repo, as opposed to the token lacking access.
+const FEATURE_OFF = /disabled|not enabled|no analysis found/i;
+
+// Stand-in for a call that was never made.
+const SKIPPED = { ok: false, status: 0, rateLimited: false, skipped: true };
+
 async function fetchRepoDetails(owner, name, token) {
+  // The alert endpoints answer 401 to every request without a token, even on
+  // public repos, yet each of those answers still costs one of the 60 hourly
+  // calls. Skipping them leaves room for about 19 repos instead of 11.
   const [runsRes, prsRes, depRes, codeRes] = await Promise.all([
     ghFetch(`/repos/${owner}/${name}/actions/runs?per_page=1`, token),
-    ghFetch(`/repos/${owner}/${name}/pulls?state=open&per_page=30`, token),
-    ghFetch(`/repos/${owner}/${name}/dependabot/alerts?state=open&per_page=100`, token),
-    ghFetch(`/repos/${owner}/${name}/code-scanning/alerts?state=open&per_page=100`, token),
+    ghFetch(`/repos/${owner}/${name}/pulls?state=open&per_page=100`, token),
+    token ? ghFetch(`/repos/${owner}/${name}/dependabot/alerts?state=open&per_page=100`, token) : SKIPPED,
+    token ? ghFetch(`/repos/${owner}/${name}/code-scanning/alerts?state=open&per_page=100`, token) : SKIPPED,
   ]);
 
   let rateLimited = false;
@@ -393,6 +411,12 @@ async function fetchRepoDetails(owner, name, token) {
   } else if (depRes.rateLimited || codeRes.rateLimited) {
     security = { state: 'unknown', count: 0 };
     rateLimited = true;
+  } else if (token && [depRes, codeRes].every((res) => FEATURE_OFF.test(res.message))) {
+    security = { state: 'off', count: 0 };
+  } else if (token) {
+    // GitHub shows alerts only to people with admin or security rights on the
+    // repo, and only to tokens carrying the alert permissions.
+    security = { state: 'no_access', count: 0 };
   }
 
   return { ci, openPrs, security, rateLimited };
@@ -410,6 +434,8 @@ function ciPill(ci) {
 
 function securityPill(security) {
   if (security.state === 'need_token') return `<span class="pill na">${t('security_need_token')}</span>`;
+  if (security.state === 'no_access') return `<span class="pill na">${t('security_no_access')}</span>`;
+  if (security.state === 'off') return `<span class="pill na">${t('security_off')}</span>`;
   if (security.state === 'unknown') return `<span class="pill warn">${t('security_limited')}</span>`;
   if (security.count === 0) return `<span class="pill good">${t('security_clean')}</span>`;
   return `<span class="pill bad">${t('security_open', security.count)}</span>`;
@@ -489,6 +515,28 @@ async function checkDualLicense(owner, name, token) {
   return res.ok;
 }
 
+// With a token and no name, or the token owner's own name, list the owner's
+// repos including private ones. Any other name shows that account's public
+// repos, as it did without a token; before, a token silently replaced
+// whatever name was typed with its own account.
+async function listRepos(username, token) {
+  let path = `/users/${encodeURIComponent(username)}/repos?per_page=100&type=owner`;
+  if (token) {
+    const me = await ghFetch('/user', token);
+    if (!me.ok) return me;
+    if (!username || username.toLowerCase() === me.data.login.toLowerCase()) {
+      path = '/user/repos?per_page=100&affiliation=owner';
+    }
+  }
+  const repos = [];
+  for (let page = 1; ; page++) {
+    const res = await ghFetch(`${path}&page=${page}`, token);
+    if (!res.ok) return page === 1 ? res : { ok: true, data: repos, truncated: true };
+    repos.push(...res.data);
+    if (res.data.length < 100) return { ok: true, data: repos };
+  }
+}
+
 async function loadDashboard() {
   const username = document.getElementById('username').value.trim();
   const token = document.getElementById('token').value.trim();
@@ -506,15 +554,12 @@ async function loadDashboard() {
   loadBtn.textContent = t('loading_button');
   setStatus(`<span class="spinner"></span> ${t('status_loading')}`);
 
-  const listPath = token
-    ? `/user/repos?per_page=100&affiliation=owner`
-    : `/users/${encodeURIComponent(username)}/repos?per_page=100&type=owner`;
-  const listRes = await ghFetch(listPath, token);
+  const listRes = await listRepos(username, token);
 
   if (!listRes.ok) {
     loadBtn.disabled = false;
     loadBtn.textContent = t('load_button');
-    if (listRes.status === 404) setStatus(t('status_user_not_found'), true);
+    if (listRes.status === 404 || listRes.status === 401) setStatus(t('status_user_not_found'), true);
     else if (listRes.status === 403) setStatus(t('status_rate_limited'), true);
     else setStatus(t('status_error'), true);
     return;
@@ -522,7 +567,7 @@ async function loadDashboard() {
 
   const repos = listRes.data;
   let done = 0;
-  let anyRateLimited = false;
+  let anyRateLimited = !!listRes.truncated;
 
   await mapWithConcurrency(repos, 2, async (repo) => {
     const owner = repo.owner.login;
